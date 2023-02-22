@@ -1,7 +1,12 @@
 import { initializeApp } from 'firebase/app';
-// eslint-disable-next-line
-import { getAuth, signInWithRedirect, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-// eslint-disable-next-line
+import {
+    getAuth,
+    signInWithRedirect,
+    signInWithPopup,
+    signInWithEmailAndPassword,
+    GoogleAuthProvider,
+    createUserWithEmailAndPassword,
+} from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -14,28 +19,35 @@ const firebaseConfig = {
 };
 // eslint-disable-next-line
 const firebaseApp = initializeApp(firebaseConfig);
-const provider = new GoogleAuthProvider();
+const googleProvider = new GoogleAuthProvider();
 
-provider.setCustomParameters({
+googleProvider.setCustomParameters({
     prompt: 'select_account',
 });
 
 export const auth = getAuth();
-export const signInWithGooglePopup = () => signInWithPopup(auth, provider);
+export const signInWithGooglePopup = () => signInWithPopup(auth, googleProvider);
+export const signInWithGoogleRedirect = () => signInWithRedirect(auth, googleProvider);
+
 export const db = getFirestore();
 
-export const createUserDocumentFromAuth = async (userAuth) => {
+export const createUserDocumentFromAuth = async (userAuth, data = {}) => {
+    if (!userAuth) return;
+
     const userDocRef = doc(db, 'users', userAuth.uid);
-    console.log(userDocRef);
     const userSnapshot = await getDoc(userDocRef);
-    console.log(userSnapshot.exists());
 
     if (!userSnapshot.exists()) {
         const { displayName, email } = userAuth;
         const createdAt = new Date();
 
         try {
-            await setDoc(userDocRef, { displayName, email, createdAt })
+            await setDoc(userDocRef, {
+                displayName,
+                email,
+                createdAt,
+                ...data
+            })
         } catch (err) {
             console.log('Error occured while creating new user: ', err.message);
         }
@@ -43,4 +55,16 @@ export const createUserDocumentFromAuth = async (userAuth) => {
 
     return userDocRef;
 };
+
+export const createAuthUserWithEmailAndPassword = async (email, password) => {
+    if (!email || !password) return;
+
+    return await createUserWithEmailAndPassword(auth, email, password);
+}
+
+export const signInAuthUserWithEmailAndPassword = async (email, password) => {
+    if (!email || !password) return;
+
+    return await signInWithEmailAndPassword(auth, email, password);
+}
 
